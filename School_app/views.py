@@ -2,6 +2,8 @@ from django.contrib.auth import login, authenticate
 from django.core.serializers import serialize
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import viewsets, status, generics, mixins
 from rest_framework.decorators import api_view
 from rest_framework.parsers import JSONParser
@@ -10,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
-
+from rest_framework.reverse import reverse
 from School_app.models import Student, Teacher, Subject
 from School_app.serializers import StudentSerializer, TeacherSerializer, SubjectSerializer
 
@@ -29,6 +31,7 @@ class TeacherCreateAPIView(generics.CreateAPIView):
         return super().create(request, *args, **kwargs)
 
 class ListTeachers(APIView):
+    @method_decorator(cache_page(60*10))
     def get(self,request):
         teachers=Teacher.objects.all()
         serializer=TeacherSerializer(teachers,many=True)
@@ -43,7 +46,7 @@ class TeachersInfo(APIView):
     def get(self,request,id):
         obj=Teacher.objects.get(id=id)
         serializer=TeacherSerializer(obj)
-        return Response(serializer.data,status=status.HTTP_200_OK)
+        return JsonResponse(serializer.data,status=status.HTTP_200_OK)
 
     def put(self, request, id):
         obj = Teacher.objects.get(id=id)
@@ -64,7 +67,10 @@ class TeachersInfo(APIView):
         obj.delete()
         return Response({"msg":"deleted"} ,status=status.HTTP_204_NO_CONTENT)
 
-
+class TeacherListAPIView(generics.ListAPIView):
+    queryset = Teacher.objects.all()
+    serializer_class = TeacherSerializer
+    permission_classes = [IsAuthenticated]
 #put post delete soft-delete
 class TeacherRetrieveAPIView(generics.RetrieveAPIView):
     queryset = Teacher.objects.all()
@@ -75,6 +81,7 @@ class TeacherDestroyAPIView(generics.DestroyAPIView):
     queryset = Teacher.objects.all()
     lookup_field = 'teacher_id'
     serializer_class = TeacherSerializer
+    permission_classes = [IsAuthenticated]
 
 class SubjectMixins(mixins.ListModelMixin,
                   mixins.CreateModelMixin,

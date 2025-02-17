@@ -10,8 +10,9 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('teacher/view/',views.ListTeachers.as_view()),
     path('teacher/view/<int:id>/', views.TeachersInfo.as_view()),
+    path('teacher/', views.TeacherListAPIView.as_view()),
     path('teacher/create/',views.TeacherCreateAPIView.as_view()),
     path('teacher/<int:teacher_id>/',views.TeacherRetrieveAPIView.as_view()),
     path('teacher/delete/<int:teacher_id>/',views.TeacherDestroyAPIView.as_view()),
-    path('subject/',views.SubjectMixins.as_view())
+    path('subject/',views.SubjectMixins.as_view()),
 ]
