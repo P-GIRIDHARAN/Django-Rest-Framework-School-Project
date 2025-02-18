@@ -13,10 +13,14 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 from rest_framework.reverse import reverse
-from School_app.models import Student, Teacher, Subject
-from School_app.serializers import StudentSerializer, TeacherSerializer, SubjectSerializer
+from School_app.models import Student, Teacher, Subject, BusModel
+from School_app.serializers import StudentSerializer, TeacherSerializer, SubjectSerializer, BusSerializer
+from rest_framework.pagination import LimitOffsetPagination
 
 
+class BusViewSet(viewsets.ModelViewSet):
+    queryset = BusModel.objects.all()
+    serializer_class = BusSerializer
 # Create your views here.
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
@@ -30,12 +34,25 @@ class TeacherCreateAPIView(generics.CreateAPIView):
         print(request.data)
         return super().create(request, *args, **kwargs)
 
+    def post(self, request,*args, **kwargs):
+        serializer = TeacherSerializer(data=request.data)
+        if serializer.is_valid():
+            teacher = serializer.save()
+
+            teacher_url = reverse('teacher-detail', args=[teacher.teacher_id], request=request)
+
+            return Response({
+                'message': 'Teacher created successfully',
+                'teacher_url': teacher_url
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class ListTeachers(APIView):
-    @method_decorator(cache_page(60*10))
+    @method_decorator(cache_page(60*100))
     def get(self,request):
         teachers=Teacher.objects.all()
         serializer=TeacherSerializer(teachers,many=True)
         return Response(serializer.data)
+
     def post(self,request):
         serializer=TeacherSerializer(data=request.data)
         if serializer.is_valid():
@@ -67,11 +84,23 @@ class TeachersInfo(APIView):
         obj.delete()
         return Response({"msg":"deleted"} ,status=status.HTTP_204_NO_CONTENT)
 
-class TeacherListAPIView(generics.ListAPIView):
+class TeacherListAPIView(generics.ListCreateAPIView):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
-    permission_classes = [IsAuthenticated]
-#put post delete soft-delete
+    name="teacher-list"
+    filterset_fields=(
+        'name',
+        'teacher_id',
+    )
+    ordering_fields = (
+        'name',
+    )
+    search_fields = (
+        '^name',
+    )
+
+
+
 class TeacherRetrieveAPIView(generics.RetrieveAPIView):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
@@ -81,7 +110,7 @@ class TeacherDestroyAPIView(generics.DestroyAPIView):
     queryset = Teacher.objects.all()
     lookup_field = 'teacher_id'
     serializer_class = TeacherSerializer
-    permission_classes = [IsAuthenticated]
+
 
 class SubjectMixins(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
