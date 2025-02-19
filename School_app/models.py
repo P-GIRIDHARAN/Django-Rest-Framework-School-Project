@@ -10,7 +10,7 @@ class Teacher(models.Model):
 
 class Subject(models.Model):
     subject_name=models.CharField(max_length=20,default="MATHS")
-    teacher_name=models.ForeignKey(Teacher,on_delete=models.CASCADE)
+    teacher_id=models.ForeignKey(Teacher,on_delete=models.CASCADE)
 
 class Student(models.Model):
     first_name = models.CharField(max_length=30)
@@ -24,7 +24,6 @@ class Student(models.Model):
 class NonDeleted(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
-
 
 class SoftDelete(models.Model):
     is_deleted = models.BooleanField(default=False)

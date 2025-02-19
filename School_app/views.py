@@ -1,21 +1,24 @@
-from django.contrib.auth import login, authenticate
-from django.core.serializers import serialize
+import datetime
+
+import jwt
+from django.contrib.auth import authenticate
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework import viewsets, status, generics, mixins
-from rest_framework.decorators import api_view
-from rest_framework.parsers import JSONParser
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_201_CREATED
 from rest_framework.views import APIView
-from rest_framework.viewsets import ViewSet
 from rest_framework.reverse import reverse
+from datetime import datetime, timedelta
+from django.conf import settings
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from School_app.authentication import CustomJWTAuthentication
 from School_app.models import Student, Teacher, Subject, BusModel
 from School_app.serializers import StudentSerializer, TeacherSerializer, SubjectSerializer, BusSerializer
-from rest_framework.pagination import LimitOffsetPagination
+from School_app.utils import generate_jwt
 
 
 class BusViewSet(viewsets.ModelViewSet):
@@ -53,6 +56,7 @@ class ListTeachers(APIView):
         serializer=TeacherSerializer(teachers,many=True)
         return Response(serializer.data)
 
+
     def post(self,request):
         serializer=TeacherSerializer(data=request.data)
         if serializer.is_valid():
@@ -87,6 +91,8 @@ class TeachersInfo(APIView):
 class TeacherListAPIView(generics.ListCreateAPIView):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
+    authentication_classes = [TokenAuthentication,SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     name="teacher-list"
     filterset_fields=(
         'name',
@@ -98,10 +104,15 @@ class TeacherListAPIView(generics.ListCreateAPIView):
     search_fields = (
         '^name',
     )
+    def get_queryset(self):
+        queryset=Teacher.objects.all()
+        return queryset
 
 
 
 class TeacherRetrieveAPIView(generics.RetrieveAPIView):
+    authentication_classes = [TokenAuthentication,SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
     lookup_field = 'teacher_id'
@@ -122,3 +133,25 @@ class SubjectMixins(mixins.ListModelMixin,
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+class PrivateView(generics.ListAPIView):
+    authentication_classes = [CustomJWTAuthentication]
+    # permission_classes = [IsAuthenticated]
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+
+
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Authenticate the user
+        user = authenticate(username=username, password=password)
+
+        if user is not None:
+            # Generate a JWT token for the user
+            token = generate_jwt(user)
+            return Response({'access_token': token}, status=status.HTTP_200_OK)
+
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)

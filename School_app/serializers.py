@@ -18,7 +18,7 @@ class TeacherSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model=Subject
-        fields=('id','teacher_name','subject_name')
+        fields=('id','teacher_id','subject_name')
 
 class BusSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:

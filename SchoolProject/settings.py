@@ -41,7 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'School_app',
     'rest_framework',
+    'rest_framework.authtoken',
     'django_filters',
+    'rest_framework_simplejwt',
+
 ]
 
 MIDDLEWARE = [
@@ -132,6 +135,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES':[
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'School_app.authentication.CustomJWTAuthentication',
+
+    ],
     'DEFAULT_PAGINATION_CLASS': 'SchoolProject.pagination.CustomPagination',
     'DEFAULT_FILTER_BACKENDS':(
         'django_filters.rest_framework.DjangoFilterBackend',
